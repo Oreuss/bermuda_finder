@@ -58,7 +58,7 @@ local function serverHop()
     for _, server in ipairs(response.data) do
         if server.playing < server.maxPlayers then
             queueteleport([[
-                loadstring(game:HttpGet("SCRIPT_URL_HERE"))()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Oreuss/bermuda_finder/refs/heads/main/main.lua"))()
             ]])
             TeleportService:TeleportToPlaceInstance(PlaceId, server.id, LocalPlayer)
             return
