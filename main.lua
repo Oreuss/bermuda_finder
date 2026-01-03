@@ -35,9 +35,11 @@ end
 --// Find Bermuda Zone
 local function findBermudaZone()
     local zones = workspace:FindFirstChild("Zones")
+	print(zones)
     if not zones then return nil end
 
     local zone = zones:FindFirstChild("bermuda_zone")
+	print(zone)
     if not zone then return nil end
 
     if zone:IsA("BasePart") then
@@ -106,6 +108,7 @@ task.spawn(function()
         teleportCharacter(zonePosition)
     else
         notify("Bermuda Zone", "Not found, server hopping...")
+		task.wait(1)
         serverHop()
     end
 end)
