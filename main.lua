@@ -75,7 +75,7 @@ if not zones then return nil end
 
                         --// Main logic
                         task.spawn(function()
-                        task.wait(2)
+                        task.wait(10)
 
                         local zonePosition = findBermudaZone()
                         if zonePosition then
