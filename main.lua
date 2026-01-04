@@ -1,4 +1,4 @@
---// Services
+-- Services
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -8,12 +8,15 @@ local LocalPlayer = Players.LocalPlayer
 local PlaceId = game.PlaceId
 local JobId = game.JobId
 
+-- Missing helper
 function missing(t, f, fallback)
-	if type(f) == t then return f end
-	return fallback
+    if type(f) == t then
+        return f
+    end
+    return fallback
 end
 
---// Queue on teleport (executor compatibility)
+-- Queue on teleport
 local queueteleport = missing(
     "function",
     queue_on_teleport
@@ -21,7 +24,23 @@ local queueteleport = missing(
         or (fluxus and fluxus.queue_on_teleport)
 )
 
---// Notification helper
+-- Notification helper (with buttons)
+local function notifyWithButton(title, text, buttonText, callback)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = 10,
+            Buttons = {
+                {
+                    Text = buttonText,
+                    Callback = callback
+                }
+            }
+        })
+    end)
+end
+
 local function notify(title, text)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
@@ -32,36 +51,35 @@ local function notify(title, text)
     end)
 end
 
---// Find Bermuda Zone
-local function findBermudaZone()
-    local zones = workspace:FindFirstChild("Zones")
-	print(zones)
-    if not zones then return nil end
+-- Find Bermuda VFX
+local function findBermudaVFX()
+    local vfx = workspace:FindFirstChild("VFX")
+    if not vfx then return nil end
 
-    local zone = zones:FindFirstChild("bermuda_zone")
-	print(zone)
-    if not zone then return nil end
+    local bermuda = vfx:FindFirstChild("bermudaVFX")
+    if not bermuda then return nil end
 
-    if zone:IsA("BasePart") then
-        return zone.Position
-    elseif zone:IsA("Model") then
-        if zone.PrimaryPart then
-            return zone.PrimaryPart.Position
+    if bermuda:IsA("BasePart") then
+        return bermuda.Position
+    elseif bermuda:IsA("Model") then
+        if bermuda.PrimaryPart then
+            return bermuda.PrimaryPart.Position
         else
-            return zone:GetPivot().Position
+            return bermuda:GetPivot().Position
         end
     end
 
-    return nil end
+    return nil
+end
 
---// Teleport character to zone
+-- Teleport character
 local function teleportCharacter(position)
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local hrp = character:WaitForChild("HumanoidRootPart")
     hrp.CFrame = CFrame.new(position + Vector3.new(0, 5, 0))
 end
 
---// Server hop (YOUR logic)
+-- Server hop (unchanged logic)
 local function serverHop()
     local servers = {}
     local req = game:HttpGet(
@@ -99,16 +117,50 @@ local function serverHop()
     end
 end
 
---// Main logic
+-- Main logic
 task.spawn(function()
-    task.wait(5)
-    local zonePosition = findBermudaZone()
-    if zonePosition then
-        notify("Bermuda Zone Found", "Teleporting to location...")
-        teleportCharacter(zonePosition)
-    else
-        notify("Bermuda Zone", "Not found, server hopping...")
-		task.wait(1)
-        serverHop()
+    -- Wait for VFX folder
+    local vfx = workspace:WaitForChild("VFX")
+
+    local additionsStarted = false
+    local found = false
+    local startTime = 0
+
+    local connection
+    connection = vfx.ChildAdded:Connect(function()
+        if not additionsStarted then
+            additionsStarted = true
+            startTime = tick()
+        end
+
+        local pos = findBermudaVFX()
+        if pos then
+            found = true
+            connection:Disconnect()
+
+            notifyWithButton(
+                "Bermuda VFX Found",
+                "Bermuda VFX detected in this server.",
+                "Teleport",
+                function()
+                    teleportCharacter(pos)
+                end
+            )
+        end
+    end)
+
+    -- Safety timeout after additions start
+    while true do
+        task.wait(0.1)
+
+        if additionsStarted and not found then
+            if tick() - startTime >= 2 then
+                connection:Disconnect()
+                notify("Bermuda VFX", "Not found, server hopping...")
+                task.wait(0.5)
+                serverHop()
+                break
+            end
+        end
     end
 end)
